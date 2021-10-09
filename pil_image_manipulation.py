@@ -1,14 +1,14 @@
+#!/usr/bin/env python3
 """
 Author: Thomas Cascais Nisterenko
 Date: 2021-10-09
 Purpose: This python script iterates through image files in a folder,
          resizes them, rotates them, and finally, converts them to a
-         different format. Uses os, re, and pillow (PIL) modules.
+         different format. Uses os and pillow (PIL) modules.
 """
 
 import os
 from PIL import Image
-import re
 
 
 def get_imgs(dir_path):
@@ -23,54 +23,76 @@ def get_imgs(dir_path):
     img_lst = []
     # loops through all files in given dir_path
     for filename in os.listdir(dir_path):
-        # image files of TIFF format are appended to the list
-        if filename.endswith(".tiff"):
+        # codnitional dodges a hidden file
+        if ".DS" not in filename:
             img_lst.append(filename)
     
     return img_lst
 
 
-def man_img(image):
+def man_img(image_name):
     """
-    Given an image object, this file manipulates it according
+    Given an image name, this file manipulates it according
     to the specifications (found in README). Resizes, rotates,
     and changes format.
     :param image: image path
     :return: None
     """
-    image_obj = Image(image)
+    # image_obj is opened in RGB mode
+    image_obj = Image.open(image_name).convert("RGB")
+    # manipulations to the image are made (rotated and resized)
     new_image = image_obj.rotate(270).resize((128, 128))
-    new_image.save(update_filename(image))
+    return new_image
 
 
-def update_filename(old_name):
+def update_all(images):
     """
-    Updates image filename with the correct information
-    so that it may be saved to the proper directory.
-    :param old_name: string with old filename/path
-    :param new_name: string with new filename/path
+    Iterates through a list of images and updates all of them.
+    :param images: list with image file names
+    :return updated: dictionary with updated image objects
     """
 
-    # pattern to capture only the unique file_name
-    pattern = r"/images/(\w+).tiff$"
+    # updated is initialized as an empty dictionary
+    updated = {}
 
-    file_name = re.match(pattern, old_name).group(1)
+    # every image is manipulated and then saved into the dictionary
+    # with its name as the key
+    for image in images:
+        updated[image] = man_img(image)
+    
+    return updated
 
-    # new_name is constructed with the correct info
-    new_name = "~/opt/icons/" + file_name + ".jpg"
+def save_all(updated_images, dir_path):
+    """
+    Saves all images in new format.
+    :param updated_images: dictionary containing image objects
+    :param dir_path: path to the directory where images are to be saved
+    """
 
-    return new_name
+    # changes directory to make saving images easier
+    os.chdir(dir_path)
+
+    # each image object is saved with its correct name as a JPEG file
+    for name, img_obj in updated_images.items():
+        img_obj.save(name, "JPEG")
 
 def main():
     """
     main function executes the logic in the script and calls other functions
     """
 
-    images = get_imgs("~/images")
-    for img in images:
-        man_img(img)
+    # gets the path to the images directory from home
+    images_dir = os.getcwd() + "/images"
+
+    # enters the images directory to make file manipulation more streamlined
+    os.chdir(images_dir)
+
+    # core functionality of the script: gets the old images, produces the new ones,
+    # and finally saves them all in the specified directory
+    old_images = get_imgs(images_dir)
+    new_images = update_all(old_images)
+    save_all(new_images, "/opt/icons")
 
 
 if __name__ == "__main__":
     main()
-
